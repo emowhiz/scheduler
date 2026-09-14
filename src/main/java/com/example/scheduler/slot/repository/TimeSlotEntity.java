@@ -50,4 +50,13 @@ public class TimeSlotEntity {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    public TimeSlotEntity(UUID calendarId, Instant startAt, Instant endAt) {
+        this.calendarId = calendarId;
+        this.startAt = startAt;
+        this.endAt = endAt;
+    }
+
+    public boolean isLinkedToMeeting() {
+        return meetingId != null;
+    }
 }
