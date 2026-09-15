@@ -13,17 +13,28 @@ public interface TimeSlotRepository extends JpaRepository<TimeSlotEntity, UUID> 
     Optional<TimeSlotEntity> findByIdAndCalendarId(UUID id, UUID calendarId);
 
     Optional<TimeSlotEntity> findByMeetingIdAndCalendarId(UUID meetingId, UUID calendarId);
+
     List<TimeSlotEntity> findByMeetingId(UUID meetingId);
 
     @Query("""
-            select case when count(s) > 0 then true else false end
-            from TimeSlotEntity s
-            where s.calendarId = :calendarId
-              and s.status =  com.example.scheduler.slot.repository.SlotStatus.BUSY
-              and s.startAt < :to and s.endAt > :from
+            select case when count(t) > 0 then true else false end
+            from TimeSlotEntity t
+            where t.calendarId = :calendarId
+              and t.status =  com.example.scheduler.slot.repository.SlotStatus.BUSY
+              and t.startAt < :to and t.endAt > :from
             """)
     boolean existsOverlappingBusySlot(@Param("calendarId") UUID calendarId,
                                       @Param("from") Instant from,
                                       @Param("to") Instant to);
 
+    @Query("""
+            select t from TimeSlotEntity t
+            where t.calendarId in :calendarIds
+              and t.startAt < :to and t.endAt > :from
+            order by t.calendarId asc, t.startAt asc
+            """)
+    List<TimeSlotEntity> findAllOverlappingForCalendars(
+            @Param("calendarIds") List<UUID> calendarIds,
+            @Param("from") Instant from,
+            @Param("to") Instant to);
 }

@@ -34,7 +34,7 @@ Then you can access api documentations and test out the apis using following url
 - OpenAPI spec: `http://localhost:8080/v3/api-docs`
 
 ## Design Decisions
-Here lets talk about main design decisions to achieve the requirements given in [backend-challenge.pdf](../../../Desktop/backend-challenge/backend-challenge.pdf)
+Following are the main design decisions to achieve the requirements given in [backend-challenge.pdf](../../../Desktop/backend-challenge/backend-challenge.pdf)
 
 **Calendar is a domain-only concept.** 
 
@@ -59,9 +59,16 @@ exactly one 201 and nine 409s.
 
 Converting a slot into a meeting marks the organizer's slot BUSY and inserts a new BUSY slot on each participant's
 calendar in the same transaction, linked by `meeting_id`. Without this, a participant's availability view would
-have no way to know they're in a meeting someone else organized. Trade-off: participants must be users in the system. 
+have no way to know they're in a meeting someone else organized. Participants must be users in the system. 
 Cancelling a meeting reverts the organizer's original slot to FREE (it existed before the booking) 
 but *deletes* participants' mirrored slots(they only ever existed because of this booking).
+
+**Aggregated view of availability is derived, not stored.**
+
+A slot's `status` is `FREE` or `BUSY`; a user's free time for a window is computed on read as
+`union(FREE slots) − union(BUSY slots)`, clipped to the query window. This means overlapping FREE declarations are 
+harmless and BUSY always wins if a slot is ever both. The merge/subtract/intersect logic lives in 
+`availability.domain.IntervalMath`.
 
 ## Consuming the service : walkthrough on the slot and meeting manipulation
 
@@ -88,8 +95,13 @@ MEETING=$(curl -s -X POST $BASE/meetings/organizer/$ALICE/slot/$SLOT -H 'Content
   -d '{"title":"Kickoff","description":"Project kickoff","participantUserIds":["'"$BOB"'"]}' | jq -r .id)
 ```
 ->  alice@example's slot becomes to BUSY, and a mirrored BUSY slot is created on bob@example.com's calendar too.
+3. Query availability
+```sh
+curl -s "$BASE/availability/users/$ALICE?from=2026-09-15T08:00:00Z&to=2026-09-15T10:00:00Z" | jq
+curl -s "$BASE/availability?userIds=$ALICE,$BOB&from=2026-09-15T08:00:00Z&to=2026-09-15T10:00:00Z&durationMinutes=30" | jq
 
-3. Cancel — Alice's slot returns to FREE, Bob's mirrored slot is removed
+```
+4. Cancel — Alice's slot returns to FREE, Bob's mirrored slot is removed
 ```sh
 curl -s -X DELETE $BASE/meetings/$MEETING
 ```
@@ -99,12 +111,14 @@ curl -s -X DELETE $BASE/meetings/$MEETING
 Actuator exposes `health`, `info`, `metrics`, and `prometheus`. Beyond the framework defaults,
 custom Micrometer meters track the things specific to this domain:
 
-| Metric | Type | What it means |
-|---|---|---|
-| `slot.creations` | counter | Slots created|
-| `meetings.creation` | counter | Successful bookings |
-| `meetings.cancelled` | counter | Cancellations |
-| `booking.conflicts` | counter | Booking attempts rejected as a conflict (slot not free/already linked, or a participant unavailable) |
+| Metric                                  | Type | What it means |
+|-----------------------------------------|---|---|
+| `slot.creations`                        | counter | Slots created|
+| `meetings.creation`                     | counter | Successful bookings |
+| `meetings.cancelled`                    | counter | Cancellations |
+| `booking.conflicts`                     | counter | Booking attempts rejected as a conflict (slot not free/already linked, or a participant unavailable) |
+| `availability.query.duration` | timer | Latency of the single-user vs common-availability computation |
+
 
 
 - Health: `http://localhost:8080/actuator/health`
@@ -117,8 +131,6 @@ custom Micrometer meters track the things specific to this domain:
   direct queries). With this initial domain specific calendar creation also happen as well. 
 - **Auth.** There's none — endpoints trust the `userId` in the path. A real deployment needs
   authentication and to derive the caller's identity and authorize them instead of taking it as a URL parameter.
-- **Availability Check** - Currently a check is performed in the backend when creating the meeting but there are no way
-  to check for a particular users availability(aggregated view of free and busy slots)
 - **Participant responses** — Currently system only checks for a existing busy slot and if not blocks a slot in the 
   participants calendar without any interaction from the participant. Introducing and managing participant responses 
   would be the next feature i would introduce.

@@ -41,3 +41,7 @@ springdoc:
 
 server:
   port: ${SERVER_PORT:8080}
+
+app:
+  availability:
+    max-window-days: 31

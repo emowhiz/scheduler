@@ -23,14 +23,6 @@ import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- * Proves the double-booking guard actually holds under real concurrency, not just in a
- * single-threaded happy-path test: N requests race to book the same free slot, and exactly one
- * should win. The DB exclusion constraint added in the schema migration is the ultimate backstop,
- * but for two requests updating the very same slot row it's optimistic locking (@Version) that
- * decides the winner - either way, every loser should come back as a clean 409, never a 500 or a
- * silent double-booking.
- */
 class MeetingConcurrencyTest extends AbstractIntegrationTest {
 
     private static final int CONCURRENT_REQUESTS = 10;
