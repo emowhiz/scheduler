@@ -4,6 +4,7 @@ import com.example.scheduler.ParticipantUnavailableException;
 import com.example.scheduler.meeting.MeetingCancelledException;
 import com.example.scheduler.slot.SlotLinkedToMeetingException;
 import com.example.scheduler.slot.SlotNotFreeException;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
@@ -49,6 +50,11 @@ class GlobalExceptionHandler {
     @ExceptionHandler(MeetingCancelledException.class)
     ProblemDetail handleMeetingCancelled(MeetingCancelledException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(EntityNotFoundException.class)
+    ProblemDetail notFound(EntityNotFoundException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
 }
