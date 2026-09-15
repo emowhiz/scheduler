@@ -1,7 +1,5 @@
 package com.example.scheduler.user;
 
-import com.example.scheduler.slot.domain.CreateSlotRequest;
-import com.example.scheduler.slot.repository.TimeSlotRepository;
 import com.example.scheduler.user.repository.CalendarEntity;
 import com.example.scheduler.user.repository.CalendarRepository;
 import jakarta.persistence.EntityNotFoundException;

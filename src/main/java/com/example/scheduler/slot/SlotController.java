@@ -31,7 +31,7 @@ public class SlotController {
 
     @PatchMapping("/{slotId}")
     public SlotResponse updateSlot(@PathVariable UUID slotId,
-                                   @RequestBody UpdateSlotRequest request) {
+                                   @Valid @RequestBody UpdateSlotRequest request) {
         return slotService.updateSlot(slotId, request);
     }
     @DeleteMapping("/{slotId}")
