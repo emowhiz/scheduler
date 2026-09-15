@@ -111,15 +111,13 @@ curl -s -X DELETE $BASE/meetings/$MEETING
 Actuator exposes `health`, `info`, `metrics`, and `prometheus`. Beyond the framework defaults,
 custom Micrometer meters track the things specific to this domain:
 
-| Metric                                  | Type | What it means |
-|-----------------------------------------|---|---|
-| `slot.creations`                        | counter | Slots created|
-| `meetings.creation`                     | counter | Successful bookings |
-| `meetings.cancelled`                    | counter | Cancellations |
+| Metric                                  | Type | What it means                                                                                        |
+|-----------------------------------------|---|------------------------------------------------------------------------------------------------------|
+| `slot.creations`                        | counter | Slots created                                                                                        |
+| `meetings.creation`                     | counter | Successful bookings                                                                                  |
+| `meetings.cancelled`                    | counter | Cancellations                                                                                        |
 | `booking.conflicts`                     | counter | Booking attempts rejected as a conflict (slot not free/already linked, or a participant unavailable) |
-| `availability.query.duration` | timer | Latency of the single-user vs common-availability computation |
-
-
+| `availability.query.duration` | timer | Latency of the single-user and common-availability computation                                       |
 
 - Health: `http://localhost:8080/actuator/health`
 - Prometheus metrics: `http://localhost:8080/actuator/prometheus`
@@ -135,3 +133,4 @@ custom Micrometer meters track the things specific to this domain:
   participants calendar without any interaction from the participant. Introducing and managing participant responses 
   would be the next feature i would introduce.
 - **Moving a meeting's time via PATCH** — currently unsupported to assign a different time slot.
+- **Comprehensive tests** - most of the logical cases are covered already but tests can be improved
