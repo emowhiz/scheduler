@@ -33,7 +33,7 @@ public class SlotService {
         UUID calendarId = calendarService.getCalendarIdForUser(userId);
         TimeSlotEntity slot = timeSlotRepository
                 .findByIdAndCalendarId(slotId, calendarId)
-                .orElseThrow(() -> new EntityNotFoundException("slot not found : "+slotId));
+                .orElseThrow(() -> new EntityNotFoundException("slot not found : " + slotId));
         if (slot.isLinkedToMeeting()) {
             throw new SlotLinkedToMeetingException(slotId);
         }

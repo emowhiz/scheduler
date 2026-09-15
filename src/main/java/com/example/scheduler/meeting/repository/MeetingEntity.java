@@ -1,6 +1,7 @@
 package com.example.scheduler.meeting.repository;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -48,4 +49,16 @@ public class MeetingEntity {
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
+
+    public MeetingEntity(UUID organizerId, @NotBlank String title, String description, Instant startAt, Instant endAt) {
+        this.organizerUserId = organizerId;
+        this.title = title;
+        this.description = description;
+        this.startAt = startAt;
+        this.endAt = endAt;
+    }
+
+    public boolean isCancelled() {
+        return status == MeetingStatus.CANCELLED;
+    }
 }

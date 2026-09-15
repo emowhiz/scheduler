@@ -59,4 +59,8 @@ public class TimeSlotEntity {
     public boolean isLinkedToMeeting() {
         return meetingId != null;
     }
+
+    public boolean isFree() {
+        return status == SlotStatus.FREE;
+    }
 }
