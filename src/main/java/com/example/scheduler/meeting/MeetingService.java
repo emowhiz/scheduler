@@ -13,6 +13,7 @@ import com.example.scheduler.slot.repository.SlotStatus;
 import com.example.scheduler.slot.repository.TimeSlotEntity;
 import com.example.scheduler.slot.repository.TimeSlotRepository;
 import com.example.scheduler.user.CalendarService;
+import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -28,7 +29,7 @@ public class MeetingService {
     private final MeetingRepository meetingRepository;
     private final TimeSlotRepository timeSlotRepository;
     private final CalendarService calendarService;
-
+    private final MeterRegistry meterRegistry;
 
     @Transactional(readOnly = true)
     public MeetingResponse getMeeting(UUID meetingId) {
@@ -44,6 +45,7 @@ public class MeetingService {
         }
         meeting.setStatus(MeetingStatus.CANCELLED);
         meetingRepository.save(meeting);
+        meterRegistry.counter("meetings.cancelled").increment();
 
         UUID organizerCalendarId = calendarService.getCalendarIdForUser(meeting.getOrganizerUserId());
         List<TimeSlotEntity> linkedSlots = timeSlotRepository.findByMeetingId(meetingId);
@@ -57,6 +59,7 @@ public class MeetingService {
             }
         }
     }
+
     @Transactional
     public MeetingResponse updateMeeting(UUID meetingId, UpdateMeetingRequest request) {
         MeetingEntity meeting = requireMeeting(meetingId);
@@ -103,11 +106,13 @@ public class MeetingService {
                 .findByMeetingIdAndCalendarId(meeting.getId(), calendarId)
                 .ifPresent(timeSlotRepository::delete);
     }
+
     private void addParticipant(MeetingEntity meeting, UUID userId) {
         UUID calendarId = calendarService.getCalendarIdForUser(userId);
         boolean busy = timeSlotRepository.existsOverlappingBusySlot(
                 calendarId, meeting.getStartAt(), meeting.getEndAt());
         if (busy) {
+            meterRegistry.counter("booking.conflicts").increment();
             throw new ParticipantUnavailableException(userId);
         }
         TimeSlotEntity mirrored = new TimeSlotEntity(calendarId, meeting.getStartAt(), meeting.getEndAt());
@@ -124,8 +129,9 @@ public class MeetingService {
         updateSlot(slotForUser, meeting);
 
         List<TimeSlotEntity> mirroredSlots = getMirroredSlots(participantIds, slotForUser, meeting);
-
         timeSlotRepository.saveAll(mirroredSlots);
+        meterRegistry.counter("meetings.creation").increment();
+
         return MeetingResponse.from(meeting, participantIds);
     }
 
@@ -149,6 +155,7 @@ public class MeetingService {
         for (UUID participantId : participantIds) {
             boolean busy = isSlotBusy(participantId, slotForUser.getStartAt(), slotForUser.getEndAt());
             if (busy) {
+                meterRegistry.counter("booking.conflicts").increment();
                 throw new ParticipantUnavailableException(participantId);
             }
         }
@@ -176,9 +183,11 @@ public class MeetingService {
                 .findByIdAndCalendarId(slotId, calendarId)
                 .orElseThrow(() -> new EntityNotFoundException("slot not found : " + slotId));
         if (slot.isLinkedToMeeting()) {
+            meterRegistry.counter("booking.conflicts").increment();
             throw new SlotLinkedToMeetingException(slotId);
         }
         if (!slot.isFree()) {
+            meterRegistry.counter("booking.conflicts").increment();
             throw new SlotNotFreeException(slotId);
         }
         return slot;

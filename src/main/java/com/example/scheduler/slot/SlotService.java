@@ -6,6 +6,7 @@ import com.example.scheduler.slot.domain.UpdateSlotRequest;
 import com.example.scheduler.slot.repository.TimeSlotEntity;
 import com.example.scheduler.slot.repository.TimeSlotRepository;
 import com.example.scheduler.user.CalendarService;
+import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -19,11 +20,13 @@ import java.util.UUID;
 public class SlotService {
     private final TimeSlotRepository timeSlotRepository;
     private final CalendarService calendarService;
+    private final MeterRegistry meterRegistry;
 
     public SlotResponse createSlot(CreateSlotRequest request) {
         requireValidRange(request.startAt(), request.endAt());
         UUID calendarId = calendarService.getCalendarIdForUser(request.userId());
         TimeSlotEntity slot = timeSlotRepository.save(new TimeSlotEntity(calendarId, request.startAt(), request.endAt()));
+        meterRegistry.counter("slot.creation").increment();
         return SlotResponse.from(slot, request.userId());
     }
 

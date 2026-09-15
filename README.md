@@ -94,6 +94,23 @@ MEETING=$(curl -s -X POST $BASE/meetings/organizer/$ALICE/slot/$SLOT -H 'Content
 curl -s -X DELETE $BASE/meetings/$MEETING
 ```
 
+## Metrics & observability
+
+Actuator exposes `health`, `info`, `metrics`, and `prometheus`. Beyond the framework defaults,
+custom Micrometer meters track the things specific to this domain:
+
+| Metric | Type | What it means |
+|---|---|---|
+| `slot.creations` | counter | Slots created|
+| `meetings.creation` | counter | Successful bookings |
+| `meetings.cancelled` | counter | Cancellations |
+| `booking.conflicts` | counter | Booking attempts rejected as a conflict (slot not free/already linked, or a participant unavailable) |
+
+
+- Health: `http://localhost:8080/actuator/health`
+- Prometheus metrics: `http://localhost:8080/actuator/prometheus`
+- Micrometer metrics: `http://localhost:8080/actuator/metrics`
+
 ## Known Issues and missing features
 
 - **User flow** Currently there are no endpoints provided for user management flows. (can only be managed through 
@@ -106,4 +123,3 @@ curl -s -X DELETE $BASE/meetings/$MEETING
   participants calendar without any interaction from the participant. Introducing and managing participant responses 
   would be the next feature i would introduce.
 - **Moving a meeting's time via PATCH** — currently unsupported to assign a different time slot.
-- **Custom matrices** implementing custom matrices to capture domain specific changers. 
