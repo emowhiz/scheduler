@@ -1,14 +1,19 @@
 package com.example.scheduler.meeting;
 
+import com.example.scheduler.common.PageResponse;
 import com.example.scheduler.meeting.domain.CreateMeetingRequest;
 import com.example.scheduler.meeting.domain.MeetingResponse;
 import com.example.scheduler.meeting.domain.UpdateMeetingRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
 import java.util.UUID;
 
 @RestController
@@ -41,5 +46,14 @@ public class MeetingController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void cancelMeeting(@PathVariable UUID meetingId) {
         meetingService.cancelMeeting(meetingId);
+    }
+
+    @GetMapping("/users/{userId}")
+    public PageResponse<MeetingResponse> listMeetingsForUser(
+            @PathVariable UUID userId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return PageResponse.of(meetingService.listMeetingsForUser(userId, from, to, pageable));
     }
 }

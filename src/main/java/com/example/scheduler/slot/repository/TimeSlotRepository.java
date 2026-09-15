@@ -1,5 +1,7 @@
 package com.example.scheduler.slot.repository;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -37,4 +39,31 @@ public interface TimeSlotRepository extends JpaRepository<TimeSlotEntity, UUID> 
             @Param("calendarIds") List<UUID> calendarIds,
             @Param("from") Instant from,
             @Param("to") Instant to);
+
+
+    @Query("""
+            select t from TimeSlotEntity t
+            where t.calendarId = :calendarId
+              and t.startAt < :to and t.endAt > :from
+            order by t.startAt asc
+            """)
+    Page<TimeSlotEntity> findOverlapping(
+            @Param("calendarId") UUID calendarId,
+            @Param("from") Instant from,
+            @Param("to") Instant to,
+            Pageable pageable);
+
+    @Query("""
+            select t from TimeSlotEntity t
+            where t.calendarId = :calendarId
+              and t.status = :status
+              and t.startAt < :to and t.endAt > :from
+            order by t.startAt asc
+            """)
+    Page<TimeSlotEntity> findOverlappingByStatus(
+            @Param("calendarId") UUID calendarId,
+            @Param("status") SlotStatus status,
+            @Param("from") Instant from,
+            @Param("to") Instant to,
+            Pageable pageable);
 }

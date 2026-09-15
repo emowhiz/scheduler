@@ -17,6 +17,8 @@ import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,6 +38,15 @@ public class MeetingService {
         MeetingEntity meeting = requireMeeting(meetingId);
         return MeetingResponse.from(meeting, meetingRepository.findAllParticipantsForMeetingId(meetingId));
     }
+
+
+    @Transactional(readOnly = true)
+    public Page<MeetingResponse> listMeetingsForUser(UUID userId, Instant from, Instant to, Pageable pageable) {
+        Page<MeetingEntity> meetings = meetingRepository.findAllMeetingsForUserId(userId, from, to, pageable);
+        return meetings.map(meeting ->
+                MeetingResponse.from(meeting, meetingRepository.findAllParticipantsForMeetingId(meeting.getId())));
+    }
+
 
     @Transactional
     public void cancelMeeting(UUID meetingId) {

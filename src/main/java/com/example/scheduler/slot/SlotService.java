@@ -3,12 +3,15 @@ package com.example.scheduler.slot;
 import com.example.scheduler.slot.domain.CreateSlotRequest;
 import com.example.scheduler.slot.domain.SlotResponse;
 import com.example.scheduler.slot.domain.UpdateSlotRequest;
+import com.example.scheduler.slot.repository.SlotStatus;
 import com.example.scheduler.slot.repository.TimeSlotEntity;
 import com.example.scheduler.slot.repository.TimeSlotRepository;
 import com.example.scheduler.user.CalendarService;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -72,4 +75,15 @@ public class SlotService {
             throw new IllegalArgumentException("'endAt' must be after 'startAt'");
         }
     }
+
+
+    @Transactional(readOnly = true)
+    public Page<SlotResponse> listSlots(UUID userId, Instant from, Instant to, SlotStatus status, Pageable pageable) {
+        UUID calendarId = calendarService.getCalendarIdForUser(userId);
+        Page<TimeSlotEntity> page = status == null
+                ? timeSlotRepository.findOverlapping(calendarId, from, to, pageable)
+                : timeSlotRepository.findOverlappingByStatus(calendarId, status, from, to, pageable);
+        return page.map(slot -> SlotResponse.from(slot, userId));
+    }
+
 }
